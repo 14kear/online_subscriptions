@@ -1,0 +1,12 @@
+env: "local"
+
+http:
+  port: ":8080"
+
+postgres:
+  host: db
+  port: 5432
+  user: postgres
+  password: 123456
+  dbname: subscriptions_db
+  sslmode: disable

@@ -1,0 +1,36 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      CONFIG_PATH: /app/online_subscriptions/config/local.yaml
+    volumes:
+      - .:/app  # Монтирование кода
+    command: sh -c "go install github.com/cosmtrek/air@latest && air -c .air.toml"
+
+  db:
+    image: postgres:15
+    container_name: online_subscriptions_db
+    restart: always
+    environment:
+      POSTGRES_DB: subscriptions_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  postgres_data:
