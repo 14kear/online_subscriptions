@@ -7,6 +7,6 @@ type Record struct {
 	ServiceName string    `gorm:"not null"`
 	Price       int       `gorm:"not null;check:price >= 0"`
 	UserID      string    `gorm:"not null;index"`
-	CreatedAt   time.Time `gorm:"not null;default:CURRENT_TIMESTAMP'"`
-	ExpiresAt   time.Time `gorm:"not null"`
+	CreatedAt   time.Time `gorm:"type:date;not null;default:CURRENT_DATE"`
+	ExpiresAt   time.Time `gorm:"type:date;not null"`
 }

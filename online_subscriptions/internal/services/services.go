@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/14kear/effective_mobile/online_subscriptions/internal/entity"
+	"gorm.io/gorm"
 	"log/slog"
 	"time"
 )
@@ -43,6 +44,16 @@ func (s *RecordService) CreateRecord(ctx context.Context, record *entity.Record)
 	log := s.log.With(slog.String("operation", op))
 	log.Info("creating new record...")
 
+	now := time.Now()
+	created := record.CreatedAt
+	if created.IsZero() {
+		created = now
+	}
+
+	if record.ExpiresAt.Before(record.CreatedAt) || record.ExpiresAt.Before(time.Now()) {
+		return fmt.Errorf("%w: expires date must be after created date", ErrCreateFailed)
+	}
+
 	if err := s.recordRepository.SaveRecord(ctx, record); err != nil {
 		log.Error("failed to save record", slog.Any("error", err))
 		return fmt.Errorf("%w: %v", ErrCreateFailed, err)
@@ -62,6 +73,11 @@ func (s *RecordService) DeleteRecordByID(ctx context.Context, id uint) error {
 
 	if err := s.recordRepository.DeleteRecordByID(ctx, id); err != nil {
 		log.Error("failed to delete record", slog.Any("error", err))
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
 		return fmt.Errorf("%w: %v", ErrDeleteFailed, err)
 	}
 
@@ -76,8 +92,23 @@ func (s *RecordService) UpdateRecord(ctx context.Context, record *entity.Record)
 	log := s.log.With(slog.String("operation", op))
 	log.Info("updating record...")
 
+	now := time.Now()
+	created := record.CreatedAt
+	if created.IsZero() {
+		created = now
+	}
+
+	if record.ExpiresAt.Before(record.CreatedAt) || record.ExpiresAt.Before(time.Now()) {
+		return fmt.Errorf("%w: expires date must be after created date", ErrCreateFailed)
+	}
+
 	if err := s.recordRepository.UpdateRecord(ctx, record); err != nil {
 		log.Error("failed to update record", slog.Any("error", err))
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
 		return fmt.Errorf("%w: %v", ErrUpdateFailed, err)
 	}
 
@@ -96,6 +127,11 @@ func (s *RecordService) GetRecordByID(ctx context.Context, id uint) (*entity.Rec
 	record, err := s.recordRepository.GetRecordByID(ctx, id)
 	if err != nil {
 		log.Error("failed to get record", slog.Any("error", err))
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+
 		return nil, fmt.Errorf("%w: %v", ErrGetFailed, err)
 	}
 
@@ -130,6 +166,11 @@ func (s *RecordService) GetRecordByUserIDAndServiceName(ctx context.Context, use
 	record, err := s.recordRepository.GetRecordByUserIDAndServiceName(ctx, userID, serviceName)
 	if err != nil {
 		log.Error("failed to get record", slog.Any("error", err))
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+
 		return nil, fmt.Errorf("%w: %v", ErrGetFailed, err)
 	}
 

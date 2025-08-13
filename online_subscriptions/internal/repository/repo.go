@@ -65,7 +65,20 @@ func (r *Repository) GetRecordByUserIDAndServiceName(ctx context.Context, userID
 }
 
 func (r *Repository) UpdateRecord(ctx context.Context, record *entity.Record) error {
-	return r.db.WithContext(ctx).Save(record).Error
+	result := r.db.WithContext(ctx).
+		Model(&entity.Record{}).
+		Where("id = ?", record.ID).
+		Updates(record)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
 }
 
 func (r *Repository) ListRecords(ctx context.Context, limit, offset int, userID, serviceName string) ([]entity.Record, error) {
@@ -114,7 +127,7 @@ func (r *Repository) SumPriceForPeriod(ctx context.Context, startTime, endTime t
 		query = query.Where("service_name = ?", serviceName)
 	}
 
-	if err := query.Select("SUM(price)").Scan(&total).Error; err != nil {
+	if err := query.Select("COALESCE(SUM(price), 0)").Scan(&total).Error; err != nil {
 		return 0, err
 	}
 

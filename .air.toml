@@ -1,6 +1,0 @@
-[build]
-cmd = "go build -o ./tmp/main ./online_subscriptions/cmd/main.go"
-bin = "tmp/main"
-include_ext = ["go", "yaml", "yml"]
-exclude_dir = ["vendor", "tmp", ".git"]
-delay = 1000

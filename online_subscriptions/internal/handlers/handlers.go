@@ -19,11 +19,14 @@ func NewRecordHandler(recordService *services.RecordService) *RecordHandler {
 }
 
 func (h *RecordHandler) CreateRecord(ctx *gin.Context) {
+	var createdAt time.Time
+
 	var req struct {
-		ServiceName string    `json:"service_name" binding:"required"`
-		Price       int       `json:"price" binding:"required"`
-		UserID      string    `json:"user_id" binding:"required"`
-		ExpiresAt   time.Time `json:"expires_at" binding:"required"`
+		ServiceName string `json:"service_name" binding:"required"`
+		Price       int    `json:"price" binding:"required"`
+		UserID      string `json:"user_id" binding:"required"`
+		ExpiresAt   string `json:"expires_at" binding:"required,datetime=02-01-2006"`
+		CreatedAt   string `json:"created_at" binding:"omitempty,datetime=02-01-2006"`
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -31,20 +34,35 @@ func (h *RecordHandler) CreateRecord(ctx *gin.Context) {
 		return
 	}
 
+	expiresAt, err := time.Parse("02-01-2006", req.ExpiresAt)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Date must be DD-MM-YYYY"})
+		return
+	}
+
+	if req.CreatedAt != "" {
+		createdAt, err = time.Parse("02-01-2006", req.CreatedAt)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Date must be DD-MM-YYYY"})
+			return
+		}
+	}
+
 	record := entity.Record{
 		ServiceName: req.ServiceName,
 		Price:       req.Price,
 		UserID:      req.UserID,
-		ExpiresAt:   req.ExpiresAt,
+		ExpiresAt:   expiresAt,
+		CreatedAt:   createdAt,
 	}
 
-	err := h.RecordService.CreateRecord(ctx.Request.Context(), &record)
+	err = h.RecordService.CreateRecord(ctx.Request.Context(), &record)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"record": record})
+	ctx.JSON(http.StatusCreated, record)
 }
 
 func (h *RecordHandler) DeleteRecord(ctx *gin.Context) {
@@ -72,6 +90,8 @@ func (h *RecordHandler) DeleteRecord(ctx *gin.Context) {
 }
 
 func (h *RecordHandler) UpdateRecord(ctx *gin.Context) {
+	var createdAt time.Time
+
 	var uri struct {
 		ID uint `uri:"id" binding:"required"`
 	}
@@ -87,10 +107,11 @@ func (h *RecordHandler) UpdateRecord(ctx *gin.Context) {
 	}
 
 	var req struct {
-		ServiceName string    `json:"service_name" binding:"required"`
-		Price       int       `json:"price" binding:"required"`
-		UserID      string    `json:"user_id" binding:"required"`
-		ExpiresAt   time.Time `json:"expires_at" binding:"required"`
+		ServiceName string `json:"service_name" binding:"required"`
+		Price       int    `json:"price" binding:"required"`
+		UserID      string `json:"user_id" binding:"required"`
+		ExpiresAt   string `json:"expires_at" binding:"required,datetime=02-01-2006"`
+		CreatedAt   string `json:"created_at" binding:"omitempty,datetime=02-01-2006"`
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -98,15 +119,30 @@ func (h *RecordHandler) UpdateRecord(ctx *gin.Context) {
 		return
 	}
 
+	expiresAt, err := time.Parse("02-01-2006", req.ExpiresAt)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Date must be DD-MM-YYYY"})
+		return
+	}
+
+	if req.CreatedAt != "" {
+		createdAt, err = time.Parse("02-01-2006", req.CreatedAt)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Date must be DD-MM-YYYY"})
+			return
+		}
+	}
+
 	record := entity.Record{
 		ID:          uri.ID,
 		ServiceName: req.ServiceName,
 		Price:       req.Price,
 		UserID:      req.UserID,
-		ExpiresAt:   req.ExpiresAt,
+		ExpiresAt:   expiresAt,
+		CreatedAt:   createdAt,
 	}
 
-	err := h.RecordService.UpdateRecord(ctx.Request.Context(), &record)
+	err = h.RecordService.UpdateRecord(ctx.Request.Context(), &record)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "record not found"})
@@ -146,7 +182,7 @@ func (h *RecordHandler) GetRecordByID(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"record": record})
+	ctx.JSON(http.StatusOK, record)
 }
 
 func (h *RecordHandler) GetRecordsByUserID(ctx *gin.Context) {
@@ -169,7 +205,7 @@ func (h *RecordHandler) GetRecordsByUserID(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"records": records})
+	ctx.JSON(http.StatusOK, records)
 }
 
 func (h *RecordHandler) GetRecordByUserIDAndServiceName(ctx *gin.Context) {
@@ -194,7 +230,7 @@ func (h *RecordHandler) GetRecordByUserIDAndServiceName(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"record": record})
+	ctx.JSON(http.StatusOK, record)
 }
 
 func (h *RecordHandler) ListRecords(ctx *gin.Context) {
@@ -225,15 +261,15 @@ func (h *RecordHandler) ListRecords(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"records": records})
+	ctx.JSON(http.StatusOK, records)
 }
 
 func (h *RecordHandler) SumPriceForPeriod(ctx *gin.Context) {
 	var req struct {
-		StartTime   time.Time `json:"start_time" binding:"required"`
-		EndTime     time.Time `json:"end_time" binding:"required"`
-		UserID      string    `json:"user_id" binding:"required"`
-		ServiceName string    `json:"service_name" binding:"required"`
+		StartTime   string `json:"start_time" binding:"required,datetime=02-01-2006"`
+		EndTime     string `json:"end_time" binding:"required,datetime=02-01-2006"`
+		UserID      string `json:"user_id"`
+		ServiceName string `json:"service_name"`
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -241,15 +277,27 @@ func (h *RecordHandler) SumPriceForPeriod(ctx *gin.Context) {
 		return
 	}
 
-	if req.EndTime.Before(req.StartTime) {
+	startTime, err := time.Parse("02-01-2006", req.StartTime)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Date must be DD-MM-YYYY"})
+		return
+	}
+
+	endTime, err := time.Parse("02-01-2006", req.EndTime)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Date must be DD-MM-YYYY"})
+		return
+	}
+
+	if endTime.Before(startTime) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "end time must be greater than start time"})
 		return
 	}
 
 	total, err := h.RecordService.SummaryPriceOfSelectedRecords(
 		ctx.Request.Context(),
-		req.StartTime,
-		req.EndTime,
+		startTime,
+		endTime,
 		req.UserID,
 		req.ServiceName)
 	if err != nil {
@@ -257,5 +305,5 @@ func (h *RecordHandler) SumPriceForPeriod(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"total_price": total})
+	ctx.JSON(http.StatusOK, total)
 }
