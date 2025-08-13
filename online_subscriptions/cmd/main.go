@@ -7,6 +7,10 @@ import (
 	"os"
 )
 
+// @title Online Subscriptions API
+// @description API для управления онлайн подписками
+// @host localhost:8080
+// @BasePath /api/
 func main() {
 	cfg := config.Load(os.Getenv("CONFIG_PATH"))
 

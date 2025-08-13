@@ -1,5 +1,7 @@
 Запуск через команду docker compose up --build
 
+Swagger по адресу http://localhost:8080/api/swagger/index.html
+
 Тестовое задание Junior Golang Developer
 Effective Mobile
 Задача: спроектировать и реализовать REST-сервис для агрегации данных об

@@ -1,0 +1,385 @@
+basePath: /api/
+definitions:
+  entity.Record:
+    properties:
+      createdAt:
+        type: string
+      expiresAt:
+        type: string
+      id:
+        type: integer
+      price:
+        type: integer
+      serviceName:
+        type: string
+      userID:
+        type: string
+    type: object
+  handlers.RecordCreateUpdateRequest:
+    properties:
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      price:
+        type: integer
+      service_name:
+        type: string
+      user_id:
+        type: string
+    required:
+    - expires_at
+    - price
+    - service_name
+    - user_id
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API для управления онлайн подписками
+  title: Online Subscriptions API
+paths:
+  /create:
+    post:
+      consumes:
+      - application/json
+      description: Создает новую запись онлайн подписки
+      parameters:
+      - description: Данные подписки
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RecordCreateUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Созданная запись
+          schema:
+            $ref: '#/definitions/entity.Record'
+        "400":
+          description: Неверный формат данных
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создать запись подписки
+      tags:
+      - Подписки
+  /delete/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет запись подписки по указанному ID
+      parameters:
+      - description: ID записи
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Запись успешно удалена
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Запись не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удалить запись подписки
+      tags:
+      - Подписки
+  /record/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает запись подписки по указанному ID
+      parameters:
+      - description: ID записи
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Запись подписки
+          schema:
+            $ref: '#/definitions/entity.Record'
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Запись не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить запись подписки
+      tags:
+      - Подписки
+  /record/user_service:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает конкретную подписку пользователя по названию сервиса
+      parameters:
+      - description: ID пользователя
+        example: user123
+        in: query
+        name: user_id
+        required: true
+        type: string
+      - description: Название сервиса
+        example: Netflix
+        in: query
+        name: service_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Запись подписки
+          schema:
+            $ref: '#/definitions/entity.Record'
+        "400":
+          description: Неверные параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Запись не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Найти подписку пользователя
+      tags:
+      - Подписки
+  /records:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список подписок с фильтрацией и пагинацией
+      parameters:
+      - description: Фильтр по ID пользователя
+        example: user123
+        in: query
+        name: user_id
+        type: string
+      - description: Фильтр по названию сервиса
+        example: Netflix
+        in: query
+        name: service_name
+        type: string
+      - default: 20
+        description: Лимит записей (макс. 100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: 0
+        description: Смещение
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список подписок
+          schema:
+            items:
+              $ref: '#/definitions/entity.Record'
+            type: array
+        "400":
+          description: Неверные параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Список подписок
+      tags:
+      - Подписки
+  /records/summary:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает сумму платежей за указанный период с возможностью фильтрации
+      parameters:
+      - description: Начальная дата (DD-MM-YYYY)
+        example: 01-01-2023
+        in: query
+        name: start_time
+        required: true
+        type: string
+      - description: Конечная дата (DD-MM-YYYY)
+        example: 31-12-2023
+        in: query
+        name: end_time
+        required: true
+        type: string
+      - description: Фильтр по ID пользователя
+        example: user123
+        in: query
+        name: user_id
+        type: string
+      - description: Фильтр по названию сервиса
+        example: Netflix
+        in: query
+        name: service_name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{"total_price": 1500}'
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Неверные параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Сумма платежей за период
+      tags:
+      - Аналитика
+  /records/user:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список подписок для указанного пользователя
+      parameters:
+      - description: ID пользователя
+        example: user123
+        in: query
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список подписок
+          schema:
+            items:
+              $ref: '#/definitions/entity.Record'
+            type: array
+        "400":
+          description: Неверный ID пользователя
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить подписки пользователя
+      tags:
+      - Подписки
+  /update/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Обновляет существующую запись подписки
+      parameters:
+      - description: ID записи
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные для обновления
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RecordCreateUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Запись успешно обновлена
+        "400":
+          description: Неверные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Запись не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Обновить запись подписки
+      tags:
+      - Подписки
+swagger: "2.0"
